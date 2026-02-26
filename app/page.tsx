@@ -4,47 +4,28 @@ import { useState, useEffect, useCallback } from "react";
 import { AM_STOPS, PM_STOPS, type BusStop } from "./data";
 
 interface ArrivalInfo {
-  estimatedArrival: string;
+  eta: string;
+  minutes: number;
   load: string;
-  type: string;
 }
 
 interface StopArrival {
-  code: string;
   arrivals: ArrivalInfo[];
   loading: boolean;
-  error?: string;
 }
 
-function formatEta(isoStr: string): string {
+function parseArrival(isoStr: string): { eta: string; minutes: number } {
   const diff = Math.round((new Date(isoStr).getTime() - Date.now()) / 60000);
-  if (diff <= 0) return "Arr";
-  return `${diff} min`;
+  if (diff <= 0) return { eta: "Arr", minutes: 0 };
+  return { eta: `${diff}m`, minutes: diff };
 }
 
-function loadLabel(load: string): { text: string; color: string } {
+function loadDot(load: string): string {
   switch (load) {
-    case "SEA":
-      return { text: "Seats", color: "text-green-600" };
-    case "SDA":
-      return { text: "Standing", color: "text-yellow-600" };
-    case "LSD":
-      return { text: "Full", color: "text-red-600" };
-    default:
-      return { text: "—", color: "text-gray-400" };
-  }
-}
-
-function typeLabel(type: string): string {
-  switch (type) {
-    case "SD":
-      return "🚌";
-    case "DD":
-      return "🚌🚌";
-    case "BD":
-      return "🚍";
-    default:
-      return "🚌";
+    case "SEA": return "#22c55e";
+    case "SDA": return "#eab308";
+    case "LSD": return "#ef4444";
+    default: return "#d1d5db";
   }
 }
 
@@ -52,219 +33,207 @@ export default function Home() {
   const [direction, setDirection] = useState<"AM" | "PM">("AM");
   const [arrivals, setArrivals] = useState<Map<string, StopArrival>>(new Map());
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  const [selectedStop, setSelectedStop] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const stops = direction === "AM" ? AM_STOPS : PM_STOPS;
 
-  const fetchArrivals = useCallback(
-    async (stopCode: string) => {
-      setArrivals((prev) => {
-        const next = new Map(prev);
-        next.set(stopCode, { code: stopCode, arrivals: [], loading: true });
-        return next;
-      });
+  const fetchStop = useCallback(async (code: string) => {
+    setArrivals((prev) => {
+      const next = new Map(prev);
+      next.set(code, { arrivals: [], loading: true });
+      return next;
+    });
 
-      try {
-        const res = await fetch(`/api/arrivals?stop=${stopCode}`);
-        const data = await res.json();
+    try {
+      const res = await fetch(`/api/arrivals?stop=${code}`);
+      const data = await res.json();
+      const svc = (data.Services || []).find(
+        (s: { ServiceNo: string }) => s.ServiceNo === "678"
+      );
 
-        const services = data.Services || [];
-        const svc = services.find(
-          (s: { ServiceNo: string }) => s.ServiceNo === "678"
-        );
-
-        const busArrivals: ArrivalInfo[] = [];
-        if (svc) {
-          for (const key of ["NextBus", "NextBus2", "NextBus3"]) {
-            const bus = svc[key];
-            if (bus && bus.EstimatedArrival) {
-              busArrivals.push({
-                estimatedArrival: bus.EstimatedArrival,
-                load: bus.Load || "",
-                type: bus.Type || "",
-              });
-            }
+      const list: ArrivalInfo[] = [];
+      if (svc) {
+        for (const key of ["NextBus", "NextBus2", "NextBus3"]) {
+          const bus = svc[key];
+          if (bus?.EstimatedArrival) {
+            const { eta, minutes } = parseArrival(bus.EstimatedArrival);
+            list.push({ eta, minutes, load: bus.Load || "" });
           }
         }
-
-        setArrivals((prev) => {
-          const next = new Map(prev);
-          next.set(stopCode, {
-            code: stopCode,
-            arrivals: busArrivals,
-            loading: false,
-          });
-          return next;
-        });
-      } catch {
-        setArrivals((prev) => {
-          const next = new Map(prev);
-          next.set(stopCode, {
-            code: stopCode,
-            arrivals: [],
-            loading: false,
-            error: "Failed",
-          });
-          return next;
-        });
       }
-    },
-    []
-  );
 
-  const fetchAll = useCallback(() => {
-    stops.forEach((s) => fetchArrivals(s.code));
+      setArrivals((prev) => {
+        const next = new Map(prev);
+        next.set(code, { arrivals: list, loading: false });
+        return next;
+      });
+    } catch {
+      setArrivals((prev) => {
+        const next = new Map(prev);
+        next.set(code, { arrivals: [], loading: false });
+        return next;
+      });
+    }
+  }, []);
+
+  const refresh = useCallback(() => {
+    stops.forEach((s) => fetchStop(s.code));
     setLastRefresh(new Date());
-  }, [stops, fetchArrivals]);
+  }, [stops, fetchStop]);
 
-  // Auto-refresh every 30s
   useEffect(() => {
-    fetchAll();
-    const id = setInterval(fetchAll, 30000);
+    refresh();
+    const id = setInterval(refresh, 30000);
     return () => clearInterval(id);
-  }, [fetchAll]);
+  }, [refresh]);
 
   return (
-    <main className="max-w-lg mx-auto px-4 py-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight">
-          🚌 Bus 678 Tracker
+    <main className="max-w-md mx-auto px-5 py-8 font-[system-ui]">
+      <header className="mb-8">
+        <h1 className="text-lg font-semibold tracking-tight text-gray-900">
+          678
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          City Direct · Punggol ↔ CBD · Weekday peak only
+        <p className="text-[13px] text-gray-400 mt-0.5">
+          Punggol — CBD · Weekdays only
         </p>
       </header>
 
-      {/* Direction toggle */}
-      <div className="flex gap-2 mb-4">
+      {/* Direction */}
+      <div className="flex border-b border-gray-200 mb-6">
         <button
           onClick={() => setDirection("AM")}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`pb-2 mr-6 text-sm font-medium border-b-2 transition-colors ${
             direction === "AM"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+              ? "border-gray-900 text-gray-900"
+              : "border-transparent text-gray-400 hover:text-gray-600"
           }`}
         >
-          🌅 AM → CBD
+          To CBD
         </button>
         <button
           onClick={() => setDirection("PM")}
-          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+          className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
             direction === "PM"
-              ? "bg-blue-600 text-white"
-              : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+              ? "border-gray-900 text-gray-900"
+              : "border-transparent text-gray-400 hover:text-gray-600"
           }`}
         >
-          🌇 PM → Punggol
+          To Punggol
         </button>
       </div>
 
-      {/* Refresh bar */}
-      <div className="flex items-center justify-between mb-4 text-xs text-gray-500">
-        <span>
-          {lastRefresh
-            ? `Updated ${lastRefresh.toLocaleTimeString()}`
-            : "Loading..."}
-        </span>
-        <button
-          onClick={fetchAll}
-          className="text-blue-600 hover:text-blue-800 font-medium"
-        >
-          ↻ Refresh
-        </button>
-      </div>
+      {/* Route */}
+      <div className="relative">
+        {/* Vertical line */}
+        <div className="absolute left-[3px] top-2 bottom-2 w-px bg-gray-200" />
 
-      {/* Stop list */}
-      <div className="space-y-2">
-        {stops.map((stop, i) => {
-          const data = arrivals.get(stop.code);
-          const isSelected = selectedStop === stop.code;
+        <div className="space-y-0">
+          {stops.map((stop, i) => {
+            const data = arrivals.get(stop.code);
+            const isExpanded = expanded === stop.code;
+            const first = data?.arrivals?.[0];
+            const isFirst = i === 0;
+            const isLast = i === stops.length - 1;
 
-          return (
-            <div
-              key={stop.code}
-              className={`rounded-xl border transition-all cursor-pointer ${
-                isSelected
-                  ? "border-blue-300 bg-blue-50"
-                  : "border-gray-200 bg-white hover:border-gray-300"
-              }`}
-              onClick={() =>
-                setSelectedStop(isSelected ? null : stop.code)
-              }
-            >
-              <div className="flex items-center justify-between px-4 py-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center font-medium">
-                    {i + 1}
+            return (
+              <div
+                key={stop.code}
+                className="relative pl-7 cursor-pointer group"
+                onClick={() => setExpanded(isExpanded ? null : stop.code)}
+              >
+                {/* Dot on the line */}
+                <div
+                  className={`absolute left-0 top-3 w-[7px] h-[7px] rounded-full border-2 border-white z-10 ${
+                    isFirst || isLast
+                      ? "bg-gray-900"
+                      : "bg-gray-300 group-hover:bg-gray-500"
+                  }`}
+                />
+
+                <div
+                  className={`py-2.5 ${
+                    isExpanded ? "" : "border-b border-gray-100"
+                  }`}
+                >
+                  <div className="flex items-baseline justify-between">
+                    <div className="min-w-0">
+                      <span
+                        className={`text-sm ${
+                          isFirst || isLast
+                            ? "font-medium text-gray-900"
+                            : "text-gray-700"
+                        }`}
+                      >
+                        {stop.name}
+                      </span>
+                      <span className="text-xs text-gray-400 ml-2">
+                        {stop.road}
+                      </span>
+                    </div>
+
+                    <div className="flex-shrink-0 ml-4">
+                      {data?.loading ? (
+                        <span className="text-xs text-gray-300">—</span>
+                      ) : first ? (
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: loadDot(first.load) }}
+                          />
+                          <span className="text-sm tabular-nums text-gray-900 font-medium">
+                            {first.eta}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-300">—</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {stop.name}
-                    </p>
-                    <p className="text-xs text-gray-500">{stop.road}</p>
-                  </div>
-                </div>
 
-                <div className="flex-shrink-0 ml-3">
-                  {data?.loading ? (
-                    <span className="text-xs text-gray-400 animate-pulse">
-                      ...
-                    </span>
-                  ) : data?.arrivals && data.arrivals.length > 0 ? (
-                    <span className="text-sm font-semibold text-blue-600">
-                      {formatEta(data.arrivals[0].estimatedArrival)}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-gray-400">No bus</span>
+                  {/* Expanded: show all arrivals */}
+                  {isExpanded && data && !data.loading && (
+                    <div className="mt-2 mb-1 flex gap-4">
+                      {data.arrivals.length > 0 ? (
+                        data.arrivals.map((a, j) => (
+                          <div key={j} className="flex items-center gap-1.5">
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: loadDot(a.load) }}
+                            />
+                            <span className="text-xs tabular-nums text-gray-500">
+                              {a.eta}
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-xs text-gray-400">
+                          Not operating
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-300 ml-auto">
+                        {stop.code}
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
-
-              {/* Expanded detail */}
-              {isSelected && data && !data.loading && (
-                <div className="px-4 pb-3 border-t border-gray-100 pt-2">
-                  <p className="text-xs text-gray-400 mb-2">
-                    Stop {stop.code}
-                  </p>
-                  {data.arrivals.length > 0 ? (
-                    <div className="space-y-1.5">
-                      {data.arrivals.map((a, j) => {
-                        const load = loadLabel(a.load);
-                        return (
-                          <div
-                            key={j}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <span>
-                              {typeLabel(a.type)} Bus {j + 1}
-                            </span>
-                            <div className="flex items-center gap-3">
-                              <span className={`text-xs ${load.color}`}>
-                                {load.text}
-                              </span>
-                              <span className="font-medium w-14 text-right">
-                                {formatEta(a.estimatedArrival)}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-400">
-                      No buses at this stop right now
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
 
-      <footer className="mt-8 text-center text-xs text-gray-400">
-        Data from LTA DataMall · Auto-refreshes every 30s
-      </footer>
+      {/* Footer */}
+      <div className="mt-8 flex items-center justify-between text-xs text-gray-400">
+        <span>
+          {lastRefresh ? lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+        </span>
+        <button
+          onClick={refresh}
+          className="text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          Refresh
+        </button>
+      </div>
     </main>
   );
 }
