@@ -77,32 +77,10 @@ export default function Home() {
     }
   }, []);
 
-  // Demo mode: simulate live arrivals
-  const DEMO = false;
-  const loadDemoData = useCallback(() => {
-    const fake = (mins: number[]): ArrivalInfo[] =>
-      mins.map((m) => ({
-        eta: m <= 0 ? "Arr" : `${m}m`,
-        minutes: m,
-        load: m <= 2 ? "LSD" : m <= 5 ? "SDA" : "SEA",
-      }));
-
-    const next = new Map<string, StopData>();
-    if (direction === "am") {
-      next.set("65279", { arrivals: fake([3, 18]), loading: false });
-      next.set("65239", { arrivals: fake([14, 29]), loading: false });
-    } else {
-      next.set("03217", { arrivals: fake([1, 16]), loading: false });
-    }
-    setStopData(next);
-    setLastRefresh(new Date());
-  }, [direction]);
-
   const refresh = useCallback(() => {
-    if (DEMO) { loadDemoData(); return; }
     stops.forEach((s) => fetchStop(s.code));
     setLastRefresh(new Date());
-  }, [DEMO, stops, fetchStop, loadDemoData]);
+  }, [stops, fetchStop]);
 
   useEffect(() => {
     refresh();
@@ -201,11 +179,11 @@ export default function Home() {
               Bus 678 is a City Direct service between Punggol and the CBD.
               Weekdays only, peak hours.
             </p>
-            <p>
-              <span className="text-gray-500">AM</span> — 2 trips from Punggol: ~7:25 &amp; ~7:40<br />
-              <span className="text-gray-500 ml-6">Riviera Stn Exit A: ~7:45 &amp; ~8:00</span><br />
-              <span className="text-gray-500">PM</span> — 2 trips from CBD: ~6:00 &amp; ~6:15
-            </p>
+            <div className="space-y-1">
+              <p><span className="text-gray-500">AM</span> — 2 trips from Punggol: ~7:25 &amp; ~7:40</p>
+              <p className="pl-8">Riviera Stn Exit A: ~7:45 &amp; ~8:00</p>
+              <p><span className="text-gray-500">PM</span> — 2 trips from CBD: ~6:00 &amp; ~6:15</p>
+            </div>
             <p>No service on weekends &amp; public holidays.</p>
           </div>
         </details>
