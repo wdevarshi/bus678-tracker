@@ -9,7 +9,7 @@ interface ArrivalInfo {
   load: string;
 }
 
-interface StopArrival {
+interface StopData {
   arrivals: ArrivalInfo[];
   loading: boolean;
 }
@@ -20,27 +20,35 @@ function parseArrival(isoStr: string): { eta: string; minutes: number } {
   return { eta: `${diff}m`, minutes: diff };
 }
 
-function loadDot(load: string): string {
+function loadLabel(load: string): { text: string; color: string } {
   switch (load) {
-    case "SEA": return "#22c55e";
-    case "SDA": return "#eab308";
-    case "LSD": return "#ef4444";
-    default: return "#d1d5db";
+    case "SEA": return { text: "Seats", color: "#22c55e" };
+    case "SDA": return { text: "Standing", color: "#eab308" };
+    case "LSD": return { text: "Full", color: "#ef4444" };
+    default: return { text: "", color: "#d1d5db" };
   }
 }
 
-export default function Home() {
-  const [direction, setDirection] = useState<"AM" | "PM">("AM");
-  const [arrivals, setArrivals] = useState<Map<string, StopArrival>>(new Map());
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
+type Direction = "am" | "pm";
 
-  const stops = direction === "AM" ? AM_STOPS : PM_STOPS;
+export default function Home() {
+  const [stopData, setStopData] = useState<Map<string, StopData>>(new Map());
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [showInfo, setShowInfo] = useState(false);
+
+  const hour = new Date().getHours();
+  const autoDirection: Direction = hour < 14 ? "am" : "pm";
+  const [direction, setDirection] = useState<Direction>(autoDirection);
+
+  const stops = direction === "am" ? AM_STOPS : PM_STOPS;
+  const label = direction === "am" ? "To CBD" : "To Punggol";
+  const otherLabel = direction === "am" ? "PM" : "AM";
+  const otherDirection: Direction = direction === "am" ? "pm" : "am";
 
   const fetchStop = useCallback(async (code: string) => {
-    setArrivals((prev) => {
+    setStopData((prev) => {
       const next = new Map(prev);
-      next.set(code, { arrivals: [], loading: true });
+      next.set(code, { arrivals: prev.get(code)?.arrivals || [], loading: true });
       return next;
     });
 
@@ -62,13 +70,13 @@ export default function Home() {
         }
       }
 
-      setArrivals((prev) => {
+      setStopData((prev) => {
         const next = new Map(prev);
         next.set(code, { arrivals: list, loading: false });
         return next;
       });
     } catch {
-      setArrivals((prev) => {
+      setStopData((prev) => {
         const next = new Map(prev);
         next.set(code, { arrivals: [], loading: false });
         return next;
@@ -88,151 +96,195 @@ export default function Home() {
   }, [refresh]);
 
   return (
-    <main className="max-w-md mx-auto px-5 py-8 font-[system-ui]">
-      <header className="mb-8">
-        <h1 className="text-lg font-semibold tracking-tight text-gray-900">
-          678
-        </h1>
-        <p className="text-[13px] text-gray-400 mt-0.5">
-          Punggol — CBD · Weekdays only
-        </p>
-      </header>
+    <main className="flex items-center justify-center min-h-screen bg-white px-5 font-[system-ui]">
+      <div className="w-full max-w-sm">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-baseline justify-between">
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-bold tracking-tight text-gray-900">678</span>
+              <span className="text-sm text-gray-400">{label}</span>
+            </div>
+            <button
+              onClick={() => setDirection(otherDirection)}
+              className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 rounded-full px-3 py-1 transition-colors"
+            >
+              {otherLabel} →
+            </button>
+          </div>
+        </div>
 
-      {/* Direction */}
-      <div className="flex border-b border-gray-200 mb-6">
-        <button
-          onClick={() => setDirection("AM")}
-          className={`pb-2 mr-6 text-sm font-medium border-b-2 transition-colors ${
-            direction === "AM"
-              ? "border-gray-900 text-gray-900"
-              : "border-transparent text-gray-400 hover:text-gray-600"
-          }`}
-        >
-          To CBD
-        </button>
-        <button
-          onClick={() => setDirection("PM")}
-          className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
-            direction === "PM"
-              ? "border-gray-900 text-gray-900"
-              : "border-transparent text-gray-400 hover:text-gray-600"
-          }`}
-        >
-          To Punggol
-        </button>
-      </div>
+        {/* Stops */}
+        <div className="relative">
+          {/* Vertical line */}
+          <div className="absolute left-[3px] top-2 bottom-2 w-px bg-gray-200" />
 
-      {/* Route */}
-      <div className="relative">
-        {/* Vertical line */}
-        <div className="absolute left-[3px] top-2 bottom-2 w-px bg-gray-200" />
+          <div className="space-y-0">
+            {stops.map((stop, i) => {
+              const data = stopData.get(stop.code);
+              const first = data?.arrivals?.[0];
+              const isFirst = i === 0;
+              const isLast = i === stops.length - 1;
+              const isHighlight = stop.highlight;
 
-        <div className="space-y-0">
-          {stops.map((stop, i) => {
-            const data = arrivals.get(stop.code);
-            const isExpanded = expanded === stop.code;
-            const first = data?.arrivals?.[0];
-            const isFirst = i === 0;
-            const isLast = i === stops.length - 1;
+              return (
+                <div key={stop.code} className="relative pl-7">
+                  {/* Dot */}
+                  <div
+                    className={`absolute left-0 top-3 w-[7px] h-[7px] rounded-full border-2 border-white z-10 ${
+                      isHighlight || isFirst || isLast
+                        ? "bg-gray-900"
+                        : "bg-gray-300"
+                    }`}
+                  />
 
-            return (
-              <div
-                key={stop.code}
-                className="relative pl-7 cursor-pointer group"
-                onClick={() => setExpanded(isExpanded ? null : stop.code)}
-              >
-                {/* Dot on the line */}
-                <div
-                  className={`absolute left-0 top-3 w-[7px] h-[7px] rounded-full border-2 border-white z-10 ${
-                    isFirst || isLast
-                      ? "bg-gray-900"
-                      : "bg-gray-300 group-hover:bg-gray-500"
-                  }`}
-                />
+                  <div className={`py-3 ${!isLast ? "border-b border-gray-100" : ""}`}>
+                    {/* Stop name + first arrival */}
+                    <div className="flex items-baseline justify-between">
+                      <div className="min-w-0">
+                        <span
+                          className={`text-sm ${
+                            isHighlight
+                              ? "font-medium text-gray-900"
+                              : "text-gray-600"
+                          }`}
+                        >
+                          {stop.name}
+                        </span>
+                        <span className="text-xs text-gray-300 ml-2">
+                          {stop.code}
+                        </span>
+                      </div>
 
-                <div
-                  className={`py-2.5 ${
-                    isExpanded ? "" : "border-b border-gray-100"
-                  }`}
-                >
-                  <div className="flex items-baseline justify-between">
-                    <div className="min-w-0">
-                      <span
-                        className={`text-sm ${
-                          isFirst || isLast
-                            ? "font-medium text-gray-900"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        {stop.name}
-                      </span>
-                      <span className="text-xs text-gray-400 ml-2">
-                        {stop.road}
-                      </span>
+                      <div className="flex-shrink-0 ml-4">
+                        {data?.loading && !first ? (
+                          <span className="text-xs text-gray-300">—</span>
+                        ) : first ? (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: loadLabel(first.load).color }}
+                            />
+                            <span className={`tabular-nums font-semibold ${
+                              isHighlight ? "text-xl text-gray-900" : "text-sm text-gray-700"
+                            }`}>
+                              {first.eta}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-300">—</span>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex-shrink-0 ml-4">
-                      {data?.loading ? (
-                        <span className="text-xs text-gray-300">—</span>
-                      ) : first ? (
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: loadDot(first.load) }}
-                          />
-                          <span className="text-sm tabular-nums text-gray-900 font-medium">
-                            {first.eta}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-300">—</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Expanded: show all arrivals */}
-                  {isExpanded && data && !data.loading && (
-                    <div className="mt-2 mb-1 flex gap-4">
-                      {data.arrivals.length > 0 ? (
-                        data.arrivals.map((a, j) => (
+                    {/* All arrivals for highlighted stop */}
+                    {isHighlight && data && !data.loading && data.arrivals.length > 1 && (
+                      <div className="mt-1.5 flex gap-4">
+                        {data.arrivals.slice(1).map((a, j) => (
                           <div key={j} className="flex items-center gap-1.5">
                             <span
                               className="w-1.5 h-1.5 rounded-full"
-                              style={{ backgroundColor: loadDot(a.load) }}
+                              style={{ backgroundColor: loadLabel(a.load).color }}
                             />
-                            <span className="text-xs tabular-nums text-gray-500">
+                            <span className="text-xs tabular-nums text-gray-400">
                               {a.eta}
                             </span>
                           </div>
-                        ))
-                      ) : (
-                        <span className="text-xs text-gray-400">
-                          Not operating
-                        </span>
-                      )}
-                      <span className="text-xs text-gray-300 ml-auto">
-                        {stop.code}
-                      </span>
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Scheduled times */}
+                    {stop.scheduled && (
+                      <p className="text-xs text-gray-400 mt-1">
+                        Scheduled: {stop.scheduled[0]} · {stop.scheduled[1]}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-10 flex items-center justify-between text-xs text-gray-300">
+          <span>
+            {lastRefresh
+              ? lastRefresh.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "—"}
+          </span>
+          <button
+            onClick={refresh}
+            className="text-gray-300 hover:text-gray-500 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+
+        {/* Info toggle */}
+        <div className="mt-8 border-t border-gray-100 pt-4">
+          <button
+            onClick={() => setShowInfo(!showInfo)}
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            {showInfo ? "Hide details ↑" : "About this bus ↓"}
+          </button>
+
+          {showInfo && (
+            <div className="mt-4 text-xs text-gray-500 space-y-3 leading-relaxed">
+              <div>
+                <p className="font-medium text-gray-700 mb-1">Bus 678 — City Direct</p>
+                <p>
+                  Express service between Punggol and the CBD.
+                  Weekday peak hours only — no service on weekends or public holidays.
+                </p>
+              </div>
+
+              <div>
+                <p className="font-medium text-gray-700 mb-1">Schedule</p>
+                <p className="mb-1">Weekdays only · 2 trips each way</p>
+                <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 mt-2">
+                  <span className="text-gray-400">AM</span>
+                  <div>
+                    <p>Trip 1: <span className="font-medium">7:28 Blks 187/188</span> → <span className="font-medium">7:45 Riviera</span></p>
+                    <p>Trip 2: <span className="font-medium">7:43 Blks 187/188</span> → <span className="font-medium">8:00 Riviera</span></p>
+                  </div>
+                  <span className="text-gray-400">PM</span>
+                  <div>
+                    <p>Trip 1: 6:00 Suntec → <span className="font-medium">6:27 your stop</span> → 6:53 Punggol</p>
+                    <p>Trip 2: 6:15 Suntec → <span className="font-medium">6:42 your stop</span> → 7:08 Punggol</p>
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </div>
 
-      {/* Footer */}
-      <div className="mt-8 flex items-center justify-between text-xs text-gray-400">
-        <span>
-          {lastRefresh ? lastRefresh.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
-        </span>
-        <button
-          onClick={refresh}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          Refresh
-        </button>
+              <div>
+                <p className="font-medium text-gray-700 mb-1">Load indicator</p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500" />
+                    <span>Seats available</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-yellow-500" />
+                    <span>Standing room</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                    <span>Full</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-gray-300 pt-1">
+                Data from LTA DataMall · 30s auto-refresh
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );

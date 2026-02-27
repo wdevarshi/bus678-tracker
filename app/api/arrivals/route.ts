@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const LTA_API = "http://datamall2.mytransport.sg/ltaodataservice/v3/BusArrival";
+const LTA_API = "https://datamall2.mytransport.sg/ltaodataservice/v3/BusArrival";
 const API_KEY = process.env.LTA_API_KEY!;
 
 export async function GET(req: NextRequest) {
