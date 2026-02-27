@@ -77,10 +77,32 @@ export default function Home() {
     }
   }, []);
 
+  // Demo mode: simulate live arrivals
+  const DEMO = false;
+  const loadDemoData = useCallback(() => {
+    const fake = (mins: number[]): ArrivalInfo[] =>
+      mins.map((m) => ({
+        eta: m <= 0 ? "Arr" : `${m}m`,
+        minutes: m,
+        load: m <= 2 ? "LSD" : m <= 5 ? "SDA" : "SEA",
+      }));
+
+    const next = new Map<string, StopData>();
+    if (direction === "am") {
+      next.set("65279", { arrivals: fake([3, 18]), loading: false });
+      next.set("65239", { arrivals: fake([14, 29]), loading: false });
+    } else {
+      next.set("03217", { arrivals: fake([1, 16]), loading: false });
+    }
+    setStopData(next);
+    setLastRefresh(new Date());
+  }, [direction]);
+
   const refresh = useCallback(() => {
+    if (DEMO) { loadDemoData(); return; }
     stops.forEach((s) => fetchStop(s.code));
     setLastRefresh(new Date());
-  }, [stops, fetchStop]);
+  }, [DEMO, stops, fetchStop, loadDemoData]);
 
   useEffect(() => {
     refresh();
@@ -121,15 +143,14 @@ export default function Home() {
 
             return (
               <div key={stop.code}>
-                <div className="flex items-baseline justify-between mb-1">
+                <div className="mb-1">
                   <span className="text-base font-medium text-gray-900">{stop.name}</span>
-                  <span className="text-xs text-gray-400">{stop.code}</span>
                 </div>
 
                 {/* Scheduled */}
                 {stop.scheduled && (
-                  <p className="text-sm text-gray-400 mb-3">
-                    {stop.scheduled[0]} · {stop.scheduled[1]}
+                  <p className="text-lg tabular-nums text-gray-600 mb-3">
+                    {stop.scheduled[0]} <span className="text-gray-300 mx-0.5">·</span> {stop.scheduled[1]}
                   </p>
                 )}
 
@@ -169,6 +190,25 @@ export default function Home() {
             Refresh
           </button>
         </div>
+
+        {/* About */}
+        <details className="mt-8 mb-6">
+          <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-500 transition-colors">
+            About this bus
+          </summary>
+          <div className="mt-3 text-xs text-gray-400 space-y-2 leading-relaxed">
+            <p>
+              Bus 678 is a City Direct service between Punggol and the CBD.
+              Weekdays only, peak hours.
+            </p>
+            <p>
+              <span className="text-gray-500">AM</span> — 2 trips from Punggol: ~7:25 &amp; ~7:40<br />
+              <span className="text-gray-500 ml-6">Riviera Stn Exit A: ~7:45 &amp; ~8:00</span><br />
+              <span className="text-gray-500">PM</span> — 2 trips from CBD: ~6:00 &amp; ~6:15
+            </p>
+            <p>No service on weekends &amp; public holidays.</p>
+          </div>
+        </details>
       </div>
     </main>
   );
