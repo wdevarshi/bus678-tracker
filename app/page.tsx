@@ -37,7 +37,8 @@ export default function Home() {
   const [showInfo, setShowInfo] = useState(false);
 
   const hour = new Date().getHours();
-  const autoDirection: Direction = hour < 14 ? "am" : "pm";
+  // After 9 AM → show PM (evening commute), after 8 PM → show AM (next morning)
+  const autoDirection: Direction = (hour >= 9 && hour < 20) ? "pm" : "am";
   const [direction, setDirection] = useState<Direction>(autoDirection);
 
   const stops = direction === "am" ? AM_STOPS : PM_STOPS;
