@@ -248,8 +248,8 @@ export default function Home() {
                 <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
                   <span className="font-medium text-gray-500">AM</span>
                   <div>
-                    <p>Trip 1: <span className="font-semibold text-gray-900">7:28 Blks 187/188</span> → <span className="font-semibold text-gray-900">7:45 Riviera</span></p>
-                    <p>Trip 2: <span className="font-semibold text-gray-900">7:43 Blks 187/188</span> → <span className="font-semibold text-gray-900">8:00 Riviera</span></p>
+                    <p>Trip 1: <span className="font-semibold text-gray-900">7:28 River Isles</span> → <span className="font-semibold text-gray-900">7:45 Riviera</span></p>
+                    <p>Trip 2: <span className="font-semibold text-gray-900">7:43 River Isles</span> → <span className="font-semibold text-gray-900">8:00 Riviera</span></p>
                   </div>
                   <span className="font-medium text-gray-500">PM</span>
                   <div>

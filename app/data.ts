@@ -8,7 +8,7 @@ export interface BusStop {
 
 // AM: Key stops on the route to CBD
 export const AM_STOPS: BusStop[] = [
-  { code: "65279", name: "Bet Blks 187/188", road: "Punggol Ctrl", highlight: true, scheduled: ["7:28", "7:43"] },
+  { code: "65279", name: "River Isles", road: "Punggol Ctrl", highlight: true, scheduled: ["7:28", "7:43"] },
   { code: "65239", name: "Riviera Stn Exit A", road: "Punggol East", scheduled: ["7:45", "8:00"] },
 ];
 
