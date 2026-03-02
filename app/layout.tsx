@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "678",
-  description: "Bus 678 — Punggol to CBD",
+  title: "SG Bus Tracker",
+  description: "Track Singapore bus arrivals in real-time",
 };
 
 export default function RootLayout({

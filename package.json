@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "fetch-data": "npx tsx scripts/fetch-lta-data.ts",
     "start": "next start"
   },
   "dependencies": {

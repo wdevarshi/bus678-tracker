@@ -5,12 +5,18 @@ const API_KEY = process.env.LTA_API_KEY!;
 
 export async function GET(req: NextRequest) {
   const stop = req.nextUrl.searchParams.get("stop");
+  const service = req.nextUrl.searchParams.get("service");
+
   if (!stop) {
     return NextResponse.json({ error: "Missing stop parameter" }, { status: 400 });
   }
 
   try {
-    const url = `${LTA_API}?BusStopCode=${stop}&ServiceNo=678`;
+    let url = `${LTA_API}?BusStopCode=${stop}`;
+    if (service) {
+      url += `&ServiceNo=${service}`;
+    }
+
     const res = await fetch(url, {
       headers: { AccountKey: API_KEY },
       next: { revalidate: 0 },
