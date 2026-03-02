@@ -14,5 +14,5 @@ export const AM_STOPS: BusStop[] = [
 
 // PM: Board near Capital Tower/International Plaza → Punggol
 export const PM_STOPS: BusStop[] = [
-  { code: "03217", name: "Aft Straits Blvd", road: "Shenton Way", highlight: true, scheduled: ["6:27", "6:42"] },
+  { code: "03217", name: "Aft Straits Blvd", road: "Shenton Way", highlight: true, scheduled: ["6:24", "6:41"] },
 ];

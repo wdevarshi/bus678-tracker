@@ -205,8 +205,8 @@ export default function Home() {
                 <tr className="border-t border-gray-100">
                   <td className="py-1.5 pr-3 text-gray-500 font-medium">PM</td>
                   <td className="py-1.5 pr-3">Aft Straits Blvd</td>
-                  <td className="py-1.5 text-right tabular-nums">~6:00</td>
-                  <td className="py-1.5 text-right tabular-nums">~6:15</td>
+                  <td className="py-1.5 text-right tabular-nums">~6:24</td>
+                  <td className="py-1.5 text-right tabular-nums">~6:41</td>
                 </tr>
               </tbody>
             </table>
