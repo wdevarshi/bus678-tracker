@@ -67,16 +67,10 @@ export function migrateExisting678(): boolean {
   if (typeof window === "undefined") return false;
   // If they already have config, no migration needed
   if (getConfig()) return true;
-  // Check if this looks like a returning user (they may have visited before)
-  // We'll auto-create 678 config for first-time users too, matching original behavior
-  // Actually, per spec: only migrate if "existing 678 config detected (or first load for returning users)"
-  // Let's check for any sign of previous visit
-  const visited = localStorage.getItem("bus678_visited");
-  if (visited) {
-    saveConfig({ buses: DEFAULT_678_CONFIG });
-    return true;
-  }
-  return false;
+  // Auto-create 678 config for all users (both AM and PM directions)
+  // This preserves the original app experience
+  saveConfig({ buses: DEFAULT_678_CONFIG });
+  return true;
 }
 
 export function markVisited(): void {
