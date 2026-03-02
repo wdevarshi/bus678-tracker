@@ -48,14 +48,17 @@ export default function Home() {
       return next;
     });
     try {
-      const res = await fetch(`/api/arrivals?stop=${code}`);
+      const res = await fetch(`/api/arrivals?stop=${code}&_t=${Date.now()}`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       const svc = (data.Services || []).find(
         (s: { ServiceNo: string }) => s.ServiceNo === "678"
       );
       const list: ArrivalInfo[] = [];
       if (svc) {
-        for (const key of ["NextBus", "NextBus2", "NextBus3"]) {
+        // 678 only has 2 trips per direction — ignore NextBus3
+        for (const key of ["NextBus", "NextBus2"]) {
           const bus = svc[key];
           if (bus?.EstimatedArrival) {
             const { eta, minutes } = parseArrival(bus.EstimatedArrival);
@@ -174,17 +177,40 @@ export default function Home() {
           <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-500 transition-colors">
             About this bus
           </summary>
-          <div className="mt-3 text-xs text-gray-400 space-y-2 leading-relaxed">
-            <p>
-              Bus 678 is a City Direct service between Punggol and the CBD.
-              Weekdays only, peak hours.
+          <div className="mt-3 text-xs text-gray-400 leading-relaxed">
+            <p className="mb-3">
+              City Direct · Punggol ↔ CBD · Weekdays, peak hours only.
             </p>
-            <div className="space-y-1">
-              <p><span className="text-gray-500">AM</span> — 2 trips from Punggol: ~7:25 &amp; ~7:40</p>
-              <p className="pl-8">Riviera Stn Exit A: ~7:45 &amp; ~8:00</p>
-              <p><span className="text-gray-500">PM</span> — 2 trips from CBD: ~6:00 &amp; ~6:15</p>
-            </div>
-            <p>No service on weekends &amp; public holidays.</p>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="text-left text-gray-500">
+                  <th className="pb-1.5 font-medium pr-3"></th>
+                  <th className="pb-1.5 font-medium pr-3">Stop</th>
+                  <th className="pb-1.5 font-medium text-right">Trip 1</th>
+                  <th className="pb-1.5 font-medium text-right">Trip 2</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-400">
+                <tr className="border-t border-gray-100">
+                  <td className="py-1.5 pr-3 text-gray-500 font-medium" rowSpan={2}>AM</td>
+                  <td className="py-1.5 pr-3">River Isles</td>
+                  <td className="py-1.5 text-right tabular-nums">~7:25</td>
+                  <td className="py-1.5 text-right tabular-nums">~7:40</td>
+                </tr>
+                <tr className="border-t border-gray-50">
+                  <td className="py-1.5 pr-3">Riviera Stn Exit A</td>
+                  <td className="py-1.5 text-right tabular-nums">~7:45</td>
+                  <td className="py-1.5 text-right tabular-nums">~8:00</td>
+                </tr>
+                <tr className="border-t border-gray-100">
+                  <td className="py-1.5 pr-3 text-gray-500 font-medium">PM</td>
+                  <td className="py-1.5 pr-3">Aft Straits Blvd</td>
+                  <td className="py-1.5 text-right tabular-nums">~6:00</td>
+                  <td className="py-1.5 text-right tabular-nums">~6:15</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="mt-3 text-gray-300">No service on weekends &amp; public holidays.</p>
           </div>
         </details>
       </div>
