@@ -43,6 +43,7 @@ export interface ArrivalInfo {
   eta: string;
   minutes: number;
   load: string;
+  estimated?: boolean; // true if calculated from origin stop data
 }
 
 export interface StopArrivalData {

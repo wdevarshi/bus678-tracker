@@ -106,11 +106,16 @@ export default function BusCard({ bus, busIndex, stopsData, routesData, arrivals
                   {data.arrivals.map((a, j) => (
                     <div key={j} className="flex items-center gap-1.5">
                       <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: loadDot(a.load) }}
+                        className={`w-2 h-2 rounded-full ${a.estimated ? "border border-current" : ""}`}
+                        style={{
+                          backgroundColor: a.estimated ? "transparent" : loadDot(a.load),
+                          borderColor: a.estimated ? loadDot(a.load) : undefined,
+                        }}
                       />
                       <span className={`tabular-nums ${
-                        isBoarding && j === 0
+                        a.estimated
+                          ? "text-sm text-gray-300 italic"
+                          : isBoarding && j === 0
                           ? "text-2xl font-semibold text-gray-900"
                           : isBoarding
                           ? "text-sm text-gray-400"
