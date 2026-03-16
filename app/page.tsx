@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { BusTrackerConfig, BusRoutesData, BusStopsData } from "./types";
-import { getConfig, saveConfig, migrateExisting678, markVisited } from "./lib/storage";
+import { getConfig, migrateExisting678, markVisited } from "./lib/storage";
 import { loadRoutes, loadStops } from "./lib/data-loader";
 import Onboarding from "./components/onboarding/Onboarding";
 import TrackerView from "./components/tracker/TrackerView";
@@ -15,14 +15,12 @@ export default function Home() {
   const [routes, setRoutes] = useState<BusRoutesData | null>(null);
   const [stops, setStops] = useState<BusStopsData | null>(null);
 
-  // Load static data and determine initial view
   useEffect(() => {
     async function init() {
       const [r, s] = await Promise.all([loadRoutes(), loadStops()]);
       setRoutes(r);
       setStops(s);
 
-      // Try migration for returning users
       migrateExisting678();
       markVisited();
 
@@ -44,17 +42,6 @@ export default function Home() {
   }
 
   function handleAddBus() {
-    setView("onboarding");
-  }
-
-  function handleEditBus(index: number) {
-    // For editing, we remove the bus and go through onboarding again
-    // The user can re-add with their preferences
-    const cfg = getConfig();
-    if (cfg) {
-      cfg.buses.splice(index, 1);
-      saveConfig(cfg);
-    }
     setView("onboarding");
   }
 
@@ -93,7 +80,6 @@ export default function Home() {
         routes={routes}
         stops={stops}
         onAddBus={handleAddBus}
-        onEditBus={handleEditBus}
         onConfigChange={handleConfigChange}
       />
     );

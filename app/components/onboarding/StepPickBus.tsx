@@ -13,13 +13,12 @@ export default function StepPickBus({ routes, stops, onSelect }: Props) {
   const [query, setQuery] = useState("");
 
   const serviceList = useMemo(() => {
-    const list = Object.keys(routes).sort((a, b) => {
+    return Object.keys(routes).sort((a, b) => {
       const an = parseInt(a, 10);
       const bn = parseInt(b, 10);
       if (!isNaN(an) && !isNaN(bn)) return an - bn;
       return a.localeCompare(b);
     });
-    return list;
   }, [routes]);
 
   const filtered = useMemo(() => {
@@ -42,7 +41,7 @@ export default function StepPickBus({ routes, stops, onSelect }: Props) {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-900 mb-1">Pick your bus</h2>
+      <h2 className="text-lg font-medium text-gray-900 mb-1">Pick your bus</h2>
       <p className="text-sm text-gray-400 mb-6">Search by service number</p>
 
       <input
@@ -51,7 +50,7 @@ export default function StepPickBus({ routes, stops, onSelect }: Props) {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="e.g. 678, 14, NR1"
         autoFocus
-        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-gray-400 transition-colors mb-4"
+        className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-300 focus:outline-none focus:border-gray-400 transition-colors mb-4"
       />
 
       <div className="max-h-80 overflow-y-auto -mx-1">
@@ -62,15 +61,15 @@ export default function StepPickBus({ routes, stops, onSelect }: Props) {
           <button
             key={svc}
             onClick={() => onSelect(svc)}
-            className="w-full text-left px-3 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-baseline gap-3"
+            className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors flex items-baseline gap-3"
           >
-            <span className="text-base font-semibold text-gray-900 min-w-[3rem]">{svc}</span>
-            <span className="text-xs text-gray-400 truncate">{getRouteInfo(svc)}</span>
+            <span className="text-base font-medium text-gray-900 min-w-[3rem]">{svc}</span>
+            <span className="text-[11px] text-gray-300 truncate">{getRouteInfo(svc)}</span>
           </button>
         ))}
         {filtered.length > 50 && (
-          <p className="text-xs text-gray-300 px-3 py-2">
-            {filtered.length - 50} more — keep typing to narrow down
+          <p className="text-[11px] text-gray-300 px-3 py-2">
+            {filtered.length - 50} more — keep typing
           </p>
         )}
       </div>

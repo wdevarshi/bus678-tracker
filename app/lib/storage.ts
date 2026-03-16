@@ -52,6 +52,20 @@ export function removeBus(index: number): void {
   saveConfig(config);
 }
 
+/**
+ * Remove all entries for a given service number.
+ */
+export function removeService(service: string): void {
+  const config = getConfig();
+  if (!config) return;
+  config.buses = config.buses.filter(b => b.service !== service);
+  if (config.buses.length > 0) {
+    saveConfig(config);
+  } else {
+    localStorage.removeItem(STORAGE_KEY);
+  }
+}
+
 export function updateBus(index: number, bus: TrackedBus): void {
   const config = getConfig();
   if (!config) return;
@@ -60,15 +74,22 @@ export function updateBus(index: number, bus: TrackedBus): void {
 }
 
 /**
+ * Check if a bus with the same service + direction already exists.
+ * Returns the existing entry if found, null otherwise.
+ */
+export function findDuplicate(service: string, direction: number): TrackedBus | null {
+  const config = getConfig();
+  if (!config) return null;
+  return config.buses.find(b => b.service === service && b.direction === direction) || null;
+}
+
+/**
  * Migrate returning users — if they have no config, set up the default 678 config.
  * Returns true if migration was performed (user should see tracker, not onboarding).
  */
 export function migrateExisting678(): boolean {
   if (typeof window === "undefined") return false;
-  // If they already have config, no migration needed
   if (getConfig()) return true;
-  // Auto-create 678 config for all users (both AM and PM directions)
-  // This preserves the original app experience
   saveConfig({ buses: DEFAULT_678_CONFIG });
   return true;
 }

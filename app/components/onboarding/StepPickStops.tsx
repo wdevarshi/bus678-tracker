@@ -11,20 +11,26 @@ interface Props {
   onBack: () => void;
 }
 
+function formatTime(t: string): string {
+  if (!t || t === "-") return "-";
+  const h = parseInt(t.substring(0, 2), 10);
+  const m = t.substring(2);
+  return `${h}:${m}`;
+}
+
 export default function StepPickStops({ service, routes, stops, onConfirm, onBack }: Props) {
   const route = routes[service];
   const directions = Object.keys(route.directions).map(Number).sort();
   const [direction, setDirection] = useState(directions[0] || 1);
-  const [selected, setSelected] = useState<Map<string, boolean>>(new Map()); // code -> isBoarding
+  const [selected, setSelected] = useState<Map<string, boolean>>(new Map());
 
   const routeStops = route.directions[direction] || [];
 
   function directionLabel(dir: number): string {
     const dirStops = route.directions[dir];
-    if (!dirStops || dirStops.length === 0) return `Dir ${dir}`;
-    const first = stops[dirStops[0].stopCode]?.name || dirStops[0].stopCode;
+    if (!dirStops || dirStops.length === 0) return `Direction ${dir}`;
     const last = stops[dirStops[dirStops.length - 1].stopCode]?.name || dirStops[dirStops.length - 1].stopCode;
-    return `${first} → ${last}`;
+    return `→ ${last}`;
   }
 
   function toggleStop(code: string) {
@@ -42,16 +48,9 @@ export default function StepPickStops({ service, routes, stops, onConfirm, onBac
   function setBoarding(code: string) {
     setSelected((prev) => {
       const next = new Map(prev);
-      // Clear all boarding
-      for (const [k] of next) {
-        next.set(k, false);
-      }
-      // If not selected, add it
-      if (!next.has(code)) {
-        next.set(code, true);
-      } else {
-        next.set(code, true);
-      }
+      for (const [k] of next) next.set(k, false);
+      if (!next.has(code)) next.set(code, true);
+      else next.set(code, true);
       return next;
     });
   }
@@ -63,7 +62,6 @@ export default function StepPickStops({ service, routes, stops, onConfirm, onBac
 
   function handleConfirm() {
     const result: TrackedStop[] = [];
-    // Maintain route order
     for (const rs of routeStops) {
       if (selected.has(rs.stopCode)) {
         result.push({
@@ -78,40 +76,31 @@ export default function StepPickStops({ service, routes, stops, onConfirm, onBac
   const hasSelection = selected.size > 0;
   const hasBoarding = Array.from(selected.values()).some((v) => v);
 
-  function formatTime(t: string): string {
-    if (!t || t === "-") return "-";
-    // Format "0725" to "7:25"
-    const h = parseInt(t.substring(0, 2), 10);
-    const m = t.substring(2);
-    return `${h}:${m}`;
-  }
-
   return (
     <div>
       <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600 transition-colors mb-4">
         ← Back
       </button>
 
-      <h2 className="text-lg font-semibold text-gray-900 mb-1">Bus {service}</h2>
+      <h2 className="text-lg font-medium text-gray-900 mb-1">Bus {service}</h2>
       <p className="text-sm text-gray-400 mb-4">
-        Tap stops to track · Long press to set boarding stop
+        Tap to track · Long press for boarding stop
       </p>
 
       {/* Direction toggle */}
       {directions.length > 1 && (
-        <div className="mb-4 space-y-1">
+        <div className="flex gap-1.5 mb-5">
           {directions.map((dir) => (
             <button
               key={dir}
               onClick={() => handleDirectionChange(dir)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors ${
+              className={`flex-1 text-left px-3 py-2 rounded-lg text-[11px] transition-colors ${
                 direction === dir
                   ? "bg-gray-900 text-white"
                   : "bg-gray-50 text-gray-400 hover:bg-gray-100"
               }`}
             >
-              <span className="font-medium">Dir {dir}</span>
-              <span className="ml-2">{directionLabel(dir)}</span>
+              {directionLabel(dir)}
             </button>
           ))}
         </div>
@@ -132,57 +121,54 @@ export default function StepPickStops({ service, routes, stops, onConfirm, onBac
                 e.preventDefault();
                 setBoarding(rs.stopCode);
               }}
-              className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors flex items-center gap-3 ${
+              className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-3 ${
                 isBoarding
                   ? "bg-gray-900 text-white"
                   : isSelected
                   ? "bg-gray-100 text-gray-900"
-                  : "hover:bg-gray-50 text-gray-600"
+                  : "hover:bg-gray-50 text-gray-500"
               }`}
             >
-              {/* Sequence dot */}
-              <div className="flex flex-col items-center min-w-[1.5rem]">
-                <div className={`w-2 h-2 rounded-full ${
+              <div className="flex flex-col items-center min-w-[1rem]">
+                <div className={`w-1.5 h-1.5 rounded-full ${
                   isBoarding ? "bg-white" : isSelected ? "bg-gray-900" : "bg-gray-300"
                 }`} />
                 {i < routeStops.length - 1 && (
                   <div className={`w-px h-3 mt-0.5 ${
-                    isBoarding ? "bg-white/30" : "bg-gray-200"
+                    isBoarding ? "bg-white/20" : "bg-gray-200"
                   }`} />
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-sm font-medium truncate ${
-                    isBoarding ? "text-white" : isSelected ? "text-gray-900" : "text-gray-700"
-                  }`}>
-                    {info?.name || rs.stopCode}
-                  </span>
-                  {isBoarding && (
-                    <span className="text-[10px] font-medium bg-white/20 px-1.5 py-0.5 rounded">
-                      BOARDING
-                    </span>
-                  )}
-                </div>
-                <div className={`text-xs ${
-                  isBoarding ? "text-white/60" : "text-gray-400"
+                <span className={`text-sm truncate block ${
+                  isBoarding ? "text-white font-medium" : isSelected ? "text-gray-900" : "text-gray-600"
                 }`}>
-                  {info?.road || ""} · {rs.stopCode}
+                  {info?.name || rs.stopCode}
+                </span>
+                <span className={`text-[10px] ${
+                  isBoarding ? "text-white/50" : "text-gray-300"
+                }`}>
+                  {rs.stopCode}
                   {rs.firstBus && rs.firstBus !== "-" && (
-                    <span className="ml-2">{formatTime(rs.firstBus)}–{formatTime(rs.lastBus)}</span>
+                    <span className="ml-1.5">{formatTime(rs.firstBus)}–{formatTime(rs.lastBus)}</span>
                   )}
-                </div>
+                </span>
               </div>
+
+              {isBoarding && (
+                <span className="text-[9px] tracking-wide uppercase text-white/60">
+                  boarding
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Tip for mobile: tap = select, tap selected boarding icon = mark boarding */}
       {hasSelection && !hasBoarding && (
-        <p className="text-xs text-gray-400 mb-3">
-          Tip: long-press (or right-click) a selected stop to mark it as your boarding stop
+        <p className="text-[11px] text-gray-300 mb-3">
+          Long-press a stop to mark your boarding stop
         </p>
       )}
 
@@ -195,7 +181,7 @@ export default function StepPickStops({ service, routes, stops, onConfirm, onBac
             : "bg-gray-100 text-gray-300 cursor-not-allowed"
         }`}
       >
-        {hasSelection ? `Continue with ${selected.size} stop${selected.size > 1 ? "s" : ""}` : "Select stops to track"}
+        {hasSelection ? `Continue with ${selected.size} stop${selected.size > 1 ? "s" : ""}` : "Select stops"}
       </button>
     </div>
   );

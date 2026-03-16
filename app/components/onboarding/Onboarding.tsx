@@ -15,6 +15,8 @@ interface Props {
 
 type Step = "pick-bus" | "pick-stops" | "confirm";
 
+const STEPS: Step[] = ["pick-bus", "pick-stops", "confirm"];
+
 export default function Onboarding({ routes, stops, onComplete }: Props) {
   const [step, setStep] = useState<Step>("pick-bus");
   const [selectedService, setSelectedService] = useState("");
@@ -26,9 +28,9 @@ export default function Onboarding({ routes, stops, onComplete }: Props) {
     setStep("pick-stops");
   }
 
-  function handlePickStops(direction: number, stops: TrackedStop[]) {
+  function handlePickStops(direction: number, pickedStops: TrackedStop[]) {
     setSelectedDirection(direction);
-    setSelectedStops(stops);
+    setSelectedStops(pickedStops);
     setStep("confirm");
   }
 
@@ -42,18 +44,18 @@ export default function Onboarding({ routes, stops, onComplete }: Props) {
     onComplete();
   }
 
+  const currentIndex = STEPS.indexOf(step);
+
   return (
     <main className="flex items-center justify-center min-h-screen bg-white px-6 font-[system-ui]">
-      <div className="w-full max-w-xs py-12">
+      <div className="w-full max-w-xs py-10">
         {/* Step indicator */}
-        <div className="flex gap-1.5 mb-8">
-          {["pick-bus", "pick-stops", "confirm"].map((s, i) => (
+        <div className="flex gap-1 mb-8">
+          {STEPS.map((_, i) => (
             <div
-              key={s}
-              className={`h-0.5 flex-1 rounded-full transition-colors ${
-                i <= ["pick-bus", "pick-stops", "confirm"].indexOf(step)
-                  ? "bg-gray-900"
-                  : "bg-gray-200"
+              key={i}
+              className={`h-px flex-1 transition-colors ${
+                i <= currentIndex ? "bg-gray-900" : "bg-gray-200"
               }`}
             />
           ))}
