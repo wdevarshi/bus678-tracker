@@ -122,7 +122,7 @@ export default function BusCard({ service, entries, stopsData, routesData, arriv
 
                 return (
                   <div key={ts.code}>
-                    <div className={`text-sm mb-1 ${isBoarding ? "font-medium text-gray-900" : "text-gray-500"}`}>
+                    <div className={`text-sm mb-1 ${isBoarding ? "font-medium text-gray-900" : "font-normal text-gray-400"}`}>
                       {info?.name || ts.code}
                     </div>
 
